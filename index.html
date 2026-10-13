@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跨境单品售价计算器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            // 土黄色专属体系 (Ochre / Warm Amber)
+            ochre: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+            },
+            // 售价值(元) 主题色: 科技蓝
+            priceCny: {
+              light: '#2563eb',
+              DEFAULT: '#1d4ed8',
+              dark: '#1e40af'
+            },
+            // 售价值(美元) 主题色: 翡翠绿
+            priceUsd: {
+              light: '#059669',
+              DEFAULT: '#047857',
+              dark: '#065f46'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 自定义美化滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* 表格紧密并排无边距样式 */
+    .table-pair-left {
+      padding-right: 2px !important;
+      text-align: right;
+    }
+    .table-pair-right {
+      padding-left: 2px !important;
+      text-align: left;
+    }
+    /* 玻璃感卡片 */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+    /* 动画高亮过渡 */
+    .transition-custom {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased selection:bg-blue-100 selection:text-blue-900">
+
+  <!-- 顶部导航栏 -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <i data-lucide="calculator" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            跨境<span class="text-blue-600 font-extrabold">单品售价</span>计算器
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">SaaS专业版</span>
+          </h1>
+          <p class="text-xs text-slate-500">倒推定价 · 梯度利润率敏捷速查 · 毛利率多维核算 · 全链路公式推导</p>
+        </div>
+      </div>
+
+      <!-- 右侧快捷功能：汇率设置与重置 -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center bg-slate-100/80 rounded-lg p-1.5 border border-slate-200 text-sm">
+          <span class="text-xs text-slate-500 font-medium px-2 flex items-center gap-1">
+            <i data-lucide="repeat" class="w-3.5 h-3.5 text-slate-400"></i> 实时汇率：
+          </span>
+          <span class="text-xs font-semibold text-slate-700 mr-1">1 USD =</span>
+          <input 
+            type="number" 
+            id="exchangeRateInput" 
+            step="0.01" 
+            value="6.7" 
+            class="w-16 px-2 py-0.5 text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
+            title="汇率 (1美元换算人民币)"
+          >
+          <span class="text-xs font-semibold text-slate-700 ml-1.5 mr-1">CNY</span>
+        </div>
+
+        <button 
+          id="resetBtn" 
+          class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm flex items-center gap-1.5 transition-custom"
+          title="恢复示例默认值"
+        >
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>恢复默认</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体容器 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- ==================== 左侧列：参数配置与核心结果看板 (占比 5 列) ==================== -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- 模块 1：基础固定成本卡片 -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/80">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-4 bg-blue-600 rounded-full"></span>
+              <h2 class="text-sm font-bold text-slate-900">1. 单品固定成本构成 (人民币 CNY)</h2>
+            </div>
+            <div class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+              固定成本小计: <span id="fixedCostSumBadge" class="text-blue-700 font-bold font-mono">¥198.00</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3.5 text-xs">
+            <!-- 采购成本 -->
+            <div class="col-span-1">
+              <label class="block font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span>采购成本</span>
+                <span class="text-[11px] text-slate-400">出厂单价</span>
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-sans">¥</span>
+                <input type="number" id="purchaseCost" value="20" step="0.1" class="w-full pl-7 pr-2.5 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              </div>
+            </div>
+
+            <!-- 国内物流 -->
+            <div class="col-span-1">
+              <label class="block font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span>国内物流</span>
+                <span class="text-[11px] text-slate-400">送仓快递</span>
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-sans">¥</span>
+                <input type="number" id="domesticShipping" value="6" step="0.1" class="w-full pl-7 pr-2.5 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              </div>
+            </div>
+
+            <!-- 国际物流(含货代) -->
+            <div class="col-span-2">
+              <label class="block font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                  国际物流 (包含货代相关)
+                  <i data-lucide="plane" class="w-3 h-3 text-slate-400"></i>
+                </span>
+                <span class="text-[11px] text-slate-400">头程空海派+关税+操作费</span>
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-sans">¥</span>
+                <input type="number" id="internationalShipping" value="67" step="0.1" class="w-full pl-7 pr-2.5 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              </div>
+            </div>
+
+            <!-- 获客成本 -->
+            <div class="col-span-1">
+              <label class="block font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span>获客成本</span>
+                <span class="text-[11px] text-slate-400">单件广告等</span>
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-sans">¥</span>
+                <input type="number" id="acquisitionCost" value="0" step="0.1" class="w-full pl-7 pr-2.5 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              </div>
+            </div>
+
+            <!-- 退货及其他费用预留 -->
+            <div class="col-span-1">
+              <label class="block font-medium text-slate-700 mb-1 flex items-center justify-between">
+                <span>退货及损耗预留</span>
+                <span class="text-[11px] text-slate-400">售后赔付</span>
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-sans">¥</span>
+                <input type="number" id="reserveCost" value="10" step="0.1" class="w-full pl-7 pr-2.5 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 模块 2：费率与目标利润率设置 -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/80">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-4 bg-indigo-600 rounded-full"></span>
+              <h2 class="text-sm font-bold text-slate-900">2. 平台抽佣与目标利润率配置</h2>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <!-- 平台抽佣百分比 -->
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <label for="commissionRate" class="font-medium text-slate-700">平台抽佣百分比</label>
+                <span class="text-slate-500 text-[11px]">按售价比例扣除 (如5% = 0.05)</span>
+              </div>
+              <div class="relative">
+                <input 
+                  type="number" 
+                  id="commissionRate" 
+                  value="5" 
+                  min="0" 
+                  max="50" 
+                  step="0.5" 
+                  class="w-full px-3 py-1.5 text-sm font-semibold rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition pr-8"
+                >
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 font-bold text-xs">%</span>
+              </div>
+            </div>
+
+            <!-- 目标利润率 (滑动条 + 手动填写框双向精准联动) -->
+            <div class="pt-2 border-t border-slate-100">
+              <div class="flex items-center justify-between text-xs mb-2">
+                <label for="targetProfitRateInput" class="font-bold text-slate-800 flex items-center gap-1.5">
+                  <i data-lucide="target" class="w-3.5 h-3.5 text-indigo-600"></i>
+                  目标利润百分比
+                </label>
+                <!-- 精确手动填写框 -->
+                <div class="flex items-center gap-1">
+                  <span class="text-slate-400 text-[11px]">精确填写:</span>
+                  <div class="relative w-20">
+                    <input 
+                      type="number" 
+                      id="targetProfitRateInput" 
+                      value="35" 
+                      min="1" 
+                      max="90" 
+                      step="1" 
+                      class="w-full pl-2 pr-6 py-0.5 text-xs font-bold text-indigo-700 bg-indigo-50/60 border border-indigo-200 rounded text-center focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                    >
+                    <span class="absolute inset-y-0 right-1.5 flex items-center text-indigo-500 text-xs font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 滑动条 -->
+              <div class="space-y-1">
+                <input 
+                  type="range" 
+                  id="targetProfitRateSlider" 
+                  value="35" 
+                  min="5" 
+                  max="85" 
+                  step="1" 
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                >
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono px-0.5">
+                  <span>5%</span>
+                  <span>20%</span>
+                  <span>35%</span>
+                  <span>50%</span>
+                  <span>65%</span>
+                  <span>80%</span>
+                  <span>85%</span>
+                </div>
+              </div>
+
+              <!-- 快捷档位预设标签 -->
+              <div class="flex flex-wrap gap-1.5 pt-2">
+                <span class="text-[11px] text-slate-400 self-center mr-1">快捷切档:</span>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="15">15%</button>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="20">20%</button>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="25">25%</button>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="30">30%</button>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="35">35%</button>
+                <button type="button" class="preset-rate-btn px-2 py-0.5 text-xs rounded border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 font-medium text-slate-600 transition" data-rate="40">40%</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 模块 3：左下角核心结果指标看板 -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/80 bg-gradient-to-br from-white via-white to-blue-50/30">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-4 bg-emerald-600 rounded-full"></span>
+              <h2 class="text-sm font-bold text-slate-900">3. 当前利润率下 · 核心测算看板</h2>
+            </div>
+            <span id="currentProfitBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              目标利润率: 35%
+            </span>
+          </div>
+
+          <!-- 售价卡片 (双币种紧凑对比) -->
+          <div class="grid grid-cols-2 gap-3 mb-3.5">
+            <!-- 售价值(元) -->
+            <div class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-3.5">
+              <div class="text-xs font-medium text-blue-700/80 mb-1 flex items-center justify-between">
+                <span>单品售价 (元)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-mono">CNY</span>
+              </div>
+              <div class="text-2xl font-black text-blue-700 font-mono tracking-tight" id="displayPriceCny">
+                ¥264.00
+              </div>
+              <div class="text-[11px] text-blue-600/70 mt-1">
+                含税费与各项成本
+              </div>
+            </div>
+
+            <!-- 售价值(美元) -->
+            <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3.5">
+              <div class="text-xs font-medium text-emerald-700/80 mb-1 flex items-center justify-between">
+                <span>单品售价 (美元)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-mono">USD</span>
+              </div>
+              <div class="text-2xl font-black text-emerald-700 font-mono tracking-tight" id="displayPriceUsd">
+                $39.40
+              </div>
+              <div class="text-[11px] text-emerald-600/70 mt-1">
+                以汇率 1:<span class="currentRateSpan font-semibold">6.7</span> 折算
+              </div>
+            </div>
+          </div>
+
+          <!-- 预估净利润额 (土黄色体系) -->
+          <div class="bg-ochre-50/90 border border-ochre-200 rounded-xl p-3.5 mb-3.5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="coins" class="w-4 h-4 text-ochre-600"></i>
+                <span class="text-xs font-bold text-ochre-800">预估净利润额 (土黄色标示)</span>
+              </div>
+              <span class="text-[11px] text-ochre-700 font-medium">按单品售价 × 利润率</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <span class="text-[11px] text-ochre-700 block">利润 (人民币):</span>
+                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitCny">¥52.80</span>
+              </div>
+              <div>
+                <span class="text-[11px] text-ochre-700 block">利润 (美元):</span>
+                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitUsd">$7.88</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 毛利率被动展示模块 (严格遵循要求：被动展示，不能修改，附公式表达式) -->
+          <div class="bg-purple-50/60 border border-purple-200/80 rounded-xl p-3.5">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="percent" class="w-4 h-4 text-purple-600"></i>
+                <span class="text-xs font-bold text-purple-900">单品毛利率 (被动显示·不可更改)</span>
+              </div>
+              <span class="text-xs font-black text-purple-700 font-mono text-base" id="displayGrossMargin">
+                56.44%
+              </span>
+            </div>
+            <!-- 公式表达式完整显示 -->
+            <div class="text-[11px] text-purple-700 bg-white/70 border border-purple-100 rounded px-2.5 py-1.5 font-mono">
+              <span class="font-sans font-semibold text-purple-800">计算公式：</span>
+              毛利率 = (单件售价 − 采购成本) ÷ 单件售价
+            </div>
+            <div class="text-[10px] text-purple-500 mt-1 pl-0.5" id="grossMarginDetail">
+              代入值：(¥264.00 − ¥115.00) ÷ ¥264.00 = 56.44%
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================== 右侧列：利润档位速查表 & 完整公式推导演绎 (占比 7 列) ==================== -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- 模块 4：利润档位速查表卡片 (特别遵循列靠拢与颜色规则) -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/80">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-4 bg-amber-500 rounded-full"></span>
+              <h2 class="text-sm font-bold text-slate-900">利润档位速查表 (敏感度矩阵 15% ~ 85%)</h2>
+            </div>
+            <span class="text-xs text-slate-400">点击任意行可快速切换</span>
+          </div>
+
+          <!-- 表格说明标签 -->
+          <div class="flex items-center gap-4 text-[11px] mb-3 px-1 text-slate-500">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              <span>售价(元) 与 <span class="text-emerald-700 font-semibold">售价(美元)</span> 紧邻</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-ochre-600"></span>
+              <span class="text-ochre-700 font-medium">利润(元) 与 利润(美元) 紧邻并显示为土黄色</span>
+            </div>
+          </div>
+
+          <!-- 紧凑响应式表格 -->
+          <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full text-xs text-left border-collapse" id="ladderTable">
+              <thead>
+                <tr class="bg-slate-50/80 text-slate-600 border-b border-slate-200 text-[11px] uppercase tracking-wider font-semibold">
+                  <th scope="col" class="py-2.5 px-3 text-center w-16">利润率</th>
+                  
+                  <!-- 售价列组：完全靠近（挨着） -->
+                  <th scope="col" class="py-2.5 px-0 text-right text-blue-700 w-24">
+                    售价 (元)
+                  </th>
+                  <th scope="col" class="py-2.5 px-1 text-left text-emerald-700 w-24">
+                    / (美元)
+                  </th>
+
+                  <!-- 利润列组：完全靠近（挨着），土黄色 -->
+                  <th scope="col" class="py-2.5 px-0 text-right text-ochre-700 w-24">
+                    利润 (元)
+                  </th>
+                  <th scope="col" class="py-2.5 px-1 text-left text-ochre-700 w-24">
+                    / (美元)
+                  </th>
+
+                  <!-- 毛利率列 -->
+                  <th scope="col" class="py-2.5 px-3 text-right text-purple-700">毛利率</th>
+                  <th scope="col" class="py-2.5 px-2 text-center w-12">操作</th>
+                </tr>
+              </thead>
+              <tbody id="ladderTableBody" class="divide-y divide-slate-100 font-mono">
+                <!-- 动态由 JavaScript 填充 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 模块 5：右下角完整公式以及填入值后的推导演绎 (严格遵循文本公式规范与纠偏) -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/80 bg-slate-900 text-slate-100 shadow-xl shadow-slate-950/10">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-4 bg-sky-400 rounded-full"></span>
+              <h2 class="text-sm font-bold text-white tracking-wide">定价推导全过程 · 实时数学解算</h2>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono border border-slate-700">
+              精准代入 · 严谨移项
+            </span>
+          </div>
+
+          <div class="space-y-3 font-mono text-xs leading-relaxed">
+
+            <!-- 1. 常规公式展示 (严格遵循要求：必须是 单品售价×平台抽佣百分比) -->
+            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/70">
+              <div class="text-[11px] text-slate-400 font-sans mb-1 flex items-center gap-1.5 font-medium">
+                <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
+                常规基础公式：
+              </div>
+              <div class="text-sky-300 font-semibold break-all text-[11.5px] leading-relaxed">
+                单品售价 = 采购成本 + 国内物流 + 国际物流(含货代) + 单品售价×平台抽佣百分比 + 获客成本 + 退货预留 + 单品售价×利润百分比
+              </div>
+            </div>
+
+            <!-- 2. 步骤推导流程 -->
+            <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5">
+              
+              <!-- 填入值 -->
+              <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
+                <span class="text-slate-400 font-sans shrink-0 text-[11px]">① 填入数值：</span>
+                <span class="text-slate-200 break-all" id="step1Formula">
+                  单品售价 = 115 + 6 + 67 + 单品售价×0.05 + 0 + 10 + 单品售价×0.20
+                </span>
+              </div>
+
+              <!-- 合并固定成本 -->
+              <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
+                <span class="text-slate-400 font-sans shrink-0 text-[11px]">② 合并固定成本：</span>
+                <span class="text-slate-200 break-all" id="step2Formula">
+                  单品售价 = 198 + 单品售价×0.05 + 单品售价×0.20
+                </span>
+              </div>
+
+              <!-- 移项提取公因式 (特别纠正：利润率如15%代入0.15，绝不能代入15) -->
+              <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
+                <span class="text-slate-400 font-sans shrink-0 text-[11px]">③ 移项合并同类项：</span>
+                <span class="text-amber-300 font-medium break-all" id="step3Formula">
+                  单品售价 × (1 − 0.05 − 0.20) = 198
+                </span>
+              </div>
+
+              <!-- 计算分母与求解 -->
+              <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
+                <span class="text-slate-400 font-sans shrink-0 text-[11px]">④ 计算分母与除法：</span>
+                <span class="text-sky-300 font-medium break-all" id="step4Formula">
+                  单品售价 = 198 ÷ (1 − 0.05 − 0.20) = 198 ÷ 0.75
+                </span>
+              </div>
+
+              <!-- 最终结果 -->
+              <div class="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span class="text-slate-400 font-sans text-[11px]">⑤ 最终核算结果：</span>
+                <div class="text-right font-bold" id="step5Formula">
+                  <span class="text-blue-400 text-sm">单品售价 = 264.00元</span>
+                  <span class="text-slate-400 mx-1">=</span>
+                  <span class="text-emerald-400 text-sm">39.40美元</span>
+                  <span class="text-slate-400 mx-1.5">；</span>
+                  <span class="text-ochre-400 text-sm">利润 = 52.80元 = 7.88美元</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 极端边界保护提示条 (若分母<=0 时弹出) -->
+            <div id="mathErrorAlert" class="hidden p-3 rounded-lg bg-red-950/80 border border-red-800 text-red-200 text-xs">
+              <div class="font-bold flex items-center gap-1.5 mb-1">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>
+                数学计算提示：
+              </div>
+              <p>当前“平台抽佣率 + 目标利润率”已达到或超过 100%，导致分母 ≤ 0，售价数学上无解或为无穷大，请适当下调利润率或佣金率。</p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 底部微版权/提示 -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-400 border-t border-slate-200 mt-8">
+    <p>跨境电商商品预估与定价公式面板 · 专为跨境卖家精准测算定制</p>
+  </footer>
+
+  <!-- 业务逻辑脚本 -->
+  <script>
+    // 档位配置 (按照要求包含 15% 至 85% 各关键梯度)
+    const LADDER_RATES = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85];
+
+    // DOM 元素缓存
+    const exchangeRateInput = document.getElementById('exchangeRateInput');
+    const purchaseCostInput = document.getElementById('purchaseCost');
+    const domesticShippingInput = document.getElementById('domesticShipping');
+    const internationalShippingInput = document.getElementById('internationalShipping');
+    const acquisitionCostInput = document.getElementById('acquisitionCost');
+    const reserveCostInput = document.getElementById('reserveCost');
+    const commissionRateInput = document.getElementById('commissionRate');
+    
+    // 双向联动的利润率
+    const targetProfitRateInput = document.getElementById('targetProfitRateInput');
+    const targetProfitRateSlider = document.getElementById('targetProfitRateSlider');
+    
+    // 核心展示 DOM
+    const fixedCostSumBadge = document.getElementById('fixedCostSumBadge');
+    const currentProfitBadge = document.getElementById('currentProfitBadge');
+    const displayPriceCny = document.getElementById('displayPriceCny');
+    const displayPriceUsd = document.getElementById('displayPriceUsd');
+    const displayProfitCny = document.getElementById('displayProfitCny');
+    const displayProfitUsd = document.getElementById('displayProfitUsd');
+    const displayGrossMargin = document.getElementById('displayGrossMargin');
+    const grossMarginDetail = document.getElementById('grossMarginDetail');
+    const currentRateSpans = document.querySelectorAll('.currentRateSpan');
+
+    // 步骤公式展示 DOM
+    const step1Formula = document.getElementById('step1Formula');
+    const step2Formula = document.getElementById('step2Formula');
+    const step3Formula = document.getElementById('step3Formula');
+    const step4Formula = document.getElementById('step4Formula');
+    const step5Formula = document.getElementById('step5Formula');
+    const mathErrorAlert = document.getElementById('mathErrorAlert');
+
+    // 表格 DOM
+    const ladderTableBody = document.getElementById('ladderTableBody');
+
+    // 获取当前数值状态
+    function getState() {
+      const exchangeRate = parseFloat(exchangeRateInput.value) || 6.7;
+      const purchaseCost = parseFloat(purchaseCostInput.value) || 0;
+      const domesticShipping = parseFloat(domesticShippingInput.value) || 0;
+      const internationalShipping = parseFloat(internationalShippingInput.value) || 0;
+      const acquisitionCost = parseFloat(acquisitionCostInput.value) || 0;
+      const reserveCost = parseFloat(reserveCostInput.value) || 0;
+      const commissionPercent = parseFloat(commissionRateInput.value) || 0;
+      const targetProfitPercent = parseFloat(targetProfitRateInput.value) || 0;
+
+      const fixedCost = purchaseCost + domesticShipping + internationalShipping + acquisitionCost + reserveCost;
+      const commissionRateDecimal = commissionPercent / 100;
+      const profitRateDecimal = targetProfitPercent / 100;
+
+      return {
+        exchangeRate,
+        purchaseCost,
+        domesticShipping,
+        internationalShipping,
+        acquisitionCost,
+        reserveCost,
+        fixedCost,
+        commissionPercent,
+        commissionRateDecimal,
+        targetProfitPercent,
+        profitRateDecimal
+      };
+    }
+
+    // 单项求解计算
+    function calculateForRate(fixedCost, commissionRateDecimal, profitRateDecimal, purchaseCost, exchangeRate) {
+      const denominator = 1 - commissionRateDecimal - profitRateDecimal;
+      if (denominator <= 0) {
+        return {
+          valid: false,
+          priceCny: 0,
+          priceUsd: 0,
+          profitCny: 0,
+          profitUsd: 0,
+          grossMargin: 0,
+          denominator
+        };
+      }
+
+      const priceCny = fixedCost / denominator;
+      const priceUsd = priceCny / exchangeRate;
+      const profitCny = priceCny * profitRateDecimal;
+      const profitUsd = profitCny / exchangeRate;
+      
+      // 毛利率 = (单件售价 - 采购成本) / 单件售价
+      const grossMargin = priceCny > 0 ? ((priceCny - purchaseCost) / priceCny) * 100 : 0;
+
+      return {
+        valid: true,
+        priceCny,
+        priceUsd,
+        profitCny,
+        profitUsd,
+        grossMargin,
+        denominator
+      };
+    }
+
+    // 格式化小数显示，保留必要位数且去除多余末尾 0
+    function formatNum(num, digits = 2) {
+      if (isNaN(num)) return '0';
+      return parseFloat(num.toFixed(digits)).toString();
+    }
+
+    // 精确四舍五入货币字符串
+    function formatCurrency(num, digits = 2) {
+      if (isNaN(num)) return '0.00';
+      return num.toFixed(digits);
+    }
+
+    // 核心渲染函数
+    function render() {
+      const s = getState();
+
+      // 更新汇率标签
+      currentRateSpans.forEach(span => {
+        span.textContent = s.exchangeRate.toString();
+      });
+
+      // 更新固定成本合计徽章
+      fixedCostSumBadge.textContent = `¥${formatCurrency(s.fixedCost, 2)}`;
+
+      // 计算当前目标利润率下的结果
+      const currentResult = calculateForRate(
+        s.fixedCost,
+        s.commissionRateDecimal,
+        s.profitRateDecimal,
+        s.purchaseCost,
+        s.exchangeRate
+      );
+
+      // 徽章
+      currentProfitBadge.textContent = `目标利润率: ${s.targetProfitPercent}%`;
+
+      if (!currentResult.valid) {
+        displayPriceCny.textContent = '无法计算';
+        displayPriceUsd.textContent = '无法计算';
+        displayProfitCny.textContent = '无法计算';
+        displayProfitUsd.textContent = '无法计算';
+        displayGrossMargin.textContent = '—';
+        grossMarginDetail.textContent = '分母小于或等于0';
+        mathErrorAlert.classList.remove('hidden');
+      } else {
+        mathErrorAlert.classList.add('hidden');
+        displayPriceCny.textContent = `¥${formatCurrency(currentResult.priceCny, 2)}`;
+        displayPriceUsd.textContent = `$${formatCurrency(currentResult.priceUsd, 2)}`;
+        displayProfitCny.textContent = `¥${formatCurrency(currentResult.profitCny, 2)}`;
+        displayProfitUsd.textContent = `$${formatCurrency(currentResult.profitUsd, 2)}`;
+        displayGrossMargin.textContent = `${formatCurrency(currentResult.grossMargin, 2)}%`;
+        grossMarginDetail.textContent = `代入值：(¥${formatCurrency(currentResult.priceCny, 2)} − ¥${formatCurrency(s.purchaseCost, 2)}) ÷ ¥${formatCurrency(currentResult.priceCny, 2)} = ${formatCurrency(currentResult.grossMargin, 2)}%`;
+      }
+
+      // 渲染推导过程 (严谨代入小数如 0.15，绝对不显示 15)
+      renderDeductionSteps(s, currentResult);
+
+      // 渲染利润档位速查表
+      renderLadderTable(s);
+
+      // 重新激活图标
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    // 渲染推导演绎全流程
+    function renderDeductionSteps(s, result) {
+      const commDecimalStr = formatNum(s.commissionRateDecimal, 4);
+      const profitDecimalStr = formatNum(s.profitRateDecimal, 4);
+      const fixedStr = formatNum(s.fixedCost, 2);
+
+      // 1. 填入数值
+      step1Formula.innerHTML = `单品售价 = ${formatNum(s.purchaseCost)} + ${formatNum(s.domesticShipping)} + ${formatNum(s.internationalShipping)} + 单品售价×${commDecimalStr} + ${formatNum(s.acquisitionCost)} + ${formatNum(s.reserveCost)} + 单品售价×${profitDecimalStr}`;
+
+      // 2. 合并固定成本
+      step2Formula.innerHTML = `单品售价 = ${fixedStr} + 单品售价×${commDecimalStr} + 单品售价×${profitDecimalStr}`;
+
+      // 3. 移项合并同类项
+      step3Formula.innerHTML = `单品售价 × (1 − ${commDecimalStr} − ${profitDecimalStr}) = ${fixedStr}`;
+
+      if (result.valid) {
+        const denomStr = formatNum(result.denominator, 4);
+        // 4. 计算分母与除法
+        step4Formula.innerHTML = `单品售价 = ${fixedStr} ÷ (1 − ${commDecimalStr} − ${profitDecimalStr}) = ${fixedStr} ÷ ${denomStr}`;
+
+        // 5. 最终核算结果
+        step5Formula.innerHTML = `
+          <span class="text-blue-400 text-sm">单品售价 = ${formatCurrency(result.priceCny, 2)}元</span>
+          <span class="text-slate-400 mx-1">=</span>
+          <span class="text-emerald-400 text-sm">${formatCurrency(result.priceUsd, 2)}美元</span>
+          <span class="text-slate-400 mx-1.5">；</span>
+          <span class="text-ochre-400 text-sm">利润 = ${formatCurrency(result.profitCny, 2)}元 = ${formatCurrency(result.profitUsd, 2)}美元</span>
+        `;
+      } else {
+        step4Formula.innerHTML = `<span class="text-red-400">分母 (1 − ${commDecimalStr} − ${profitDecimalStr}) = ${formatNum(1 - s.commissionRateDecimal - s.profitRateDecimal, 4)} ≤ 0，无法进行除法计算</span>`;
+        step5Formula.innerHTML = `<span class="text-red-400 text-xs">无法求解售价（分母必须大于0）</span>`;
+      }
+    }
+
+    // 渲染利润档位速查表
+    function renderLadderTable(s) {
+      ladderTableBody.innerHTML = '';
+
+      LADDER_RATES.forEach(rate => {
+        const rateDecimal = rate / 100;
+        const res = calculateForRate(
+          s.fixedCost,
+          s.commissionRateDecimal,
+          rateDecimal,
+          s.purchaseCost,
+          s.exchangeRate
+        );
+
+        const isCurrentActive = Math.abs(rate - s.targetProfitPercent) < 0.01;
+
+        const tr = document.createElement('tr');
+        tr.className = `transition-custom cursor-pointer border-b border-slate-100 ${
+          isCurrentActive 
+            ? 'bg-indigo-50/70 font-semibold ring-1 ring-inset ring-indigo-300' 
+            : 'hover:bg-slate-50/80'
+        }`;
+
+        // 点击切换到该档位
+        tr.onclick = () => {
+          setTargetProfitRate(rate);
+        };
+
+        if (!res.valid) {
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 text-center text-slate-700 font-bold">${rate}%</td>
+            <td colspan="4" class="py-2.5 px-3 text-center text-red-400 text-[11px] font-sans">
+              分母 ≤ 0 (超限无解)
+            </td>
+            <td class="py-2.5 px-3 text-right text-slate-400">—</td>
+            <td class="py-2.5 px-2 text-center text-slate-400 text-[10px]">无法选</td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <!-- 利润率 -->
+            <td class="py-2.5 px-3 text-center text-slate-900 font-bold">
+              ${rate}%
+              ${isCurrentActive ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-600 ml-1"></span>' : ''}
+            </td>
+
+            <!-- 售价列组：完全靠近（挨着） -->
+            <!-- 售价(元) 颜色与左下角 售价值(元) 颜色一致：text-blue-700 -->
+            <td class="py-2.5 table-pair-left text-blue-700 font-bold">
+              ¥${formatCurrency(res.priceCny, 2)}
+            </td>
+            <!-- 售价(美元) 颜色与左下角 售价值(美元) 颜色一致：text-emerald-700 -->
+            <td class="py-2.5 table-pair-right text-emerald-700 font-medium">
+              /$${formatCurrency(res.priceUsd, 2)}
+            </td>
+
+            <!-- 利润列组：完全靠近（挨着），颜色为土黄色 text-ochre-700 -->
+            <td class="py-2.5 table-pair-left text-ochre-700 font-bold">
+              ¥${formatCurrency(res.profitCny, 2)}
+            </td>
+            <td class="py-2.5 table-pair-right text-ochre-700 font-medium">
+              /$${formatCurrency(res.profitUsd, 2)}
+            </td>
+
+            <!-- 毛利率列 -->
+            <td class="py-2.5 px-3 text-right text-purple-700 font-medium">
+              ${formatCurrency(res.grossMargin, 2)}%
+            </td>
+
+            <!-- 选择按钮 -->
+            <td class="py-2.5 px-2 text-center">
+              <button class="text-[11px] px-2 py-0.5 rounded ${
+                isCurrentActive 
+                  ? 'bg-indigo-600 text-white font-bold' 
+                  : 'text-slate-400 hover:text-indigo-600 hover:bg-white border border-transparent hover:border-slate-200'
+              }">
+                ${isCurrentActive ? '当前' : '选定'}
+              </button>
+            </td>
+          `;
+        }
+
+        ladderTableBody.appendChild(tr);
+      });
+    }
+
+    // 设置目标利润率并同步输入框与滑动条
+    function setTargetProfitRate(val) {
+      const num = parseFloat(val);
+      if (isNaN(num)) return;
+      targetProfitRateInput.value = num;
+      targetProfitRateSlider.value = num;
+      render();
+    }
+
+    // 事件绑定：输入框变化时触发重算
+    const allNumericInputs = [
+      exchangeRateInput,
+      purchaseCostInput,
+      domesticShippingInput,
+      internationalShippingInput,
+      acquisitionCostInput,
+      reserveCostInput,
+      commissionRateInput
+    ];
+
+    allNumericInputs.forEach(input => {
+      input.addEventListener('input', render);
+    });
+
+    // 利润率手动填写框与滑动条双向联动
+    targetProfitRateSlider.addEventListener('input', (e) => {
+      targetProfitRateInput.value = e.target.value;
+      render();
+    });
+
+    targetProfitRateInput.addEventListener('input', (e) => {
+      targetProfitRateSlider.value = e.target.value;
+      render();
+    });
+
+    // 快捷切档按钮事件绑定
+    document.querySelectorAll('.preset-rate-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rate = btn.getAttribute('data-rate');
+        setTargetProfitRate(rate);
+      });
+    });
+
+    // 恢复默认值事件
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      exchangeRateInput.value = '6.7';
+      purchaseCostInput.value = '20';
+      domesticShippingInput.value = '6';
+      internationalShippingInput.value = '67';
+      acquisitionCostInput.value = '0';
+      reserveCostInput.value = '10';
+      commissionRateInput.value = '5';
+      setTargetProfitRate(35);
+    });
+
+    // 页面初始化渲染
+    window.addEventListener('DOMContentLoaded', () => {
+      render();
+    });
+  </script>
+</body>
+</html>
