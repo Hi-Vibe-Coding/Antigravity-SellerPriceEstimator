@@ -143,7 +143,7 @@
               <h2 class="text-sm font-bold text-slate-900">1. 单品固定成本构成 (人民币 CNY)</h2>
             </div>
             <div class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-              固定成本小计: <span id="fixedCostSumBadge" class="text-blue-700 font-bold font-mono">¥198.00</span>
+              固定成本小计: <span id="fixedCostSumBadge" class="text-blue-700 font-bold font-mono">¥103.00</span>
             </div>
           </div>
 
@@ -325,7 +325,7 @@
                 <span class="text-[10px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-mono">CNY</span>
               </div>
               <div class="text-2xl font-black text-blue-700 font-mono tracking-tight" id="displayPriceCny">
-                ¥264.00
+                ¥171.67
               </div>
               <div class="text-[11px] text-blue-600/70 mt-1">
                 含税费与各项成本
@@ -339,7 +339,7 @@
                 <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-mono">USD</span>
               </div>
               <div class="text-2xl font-black text-emerald-700 font-mono tracking-tight" id="displayPriceUsd">
-                $39.40
+                $25.62
               </div>
               <div class="text-[11px] text-emerald-600/70 mt-1">
                 以汇率 1:<span class="currentRateSpan font-semibold">6.7</span> 折算
@@ -359,11 +359,11 @@
             <div class="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <span class="text-[11px] text-ochre-700 block">利润 (人民币):</span>
-                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitCny">¥52.80</span>
+                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitCny">¥60.08</span>
               </div>
               <div>
                 <span class="text-[11px] text-ochre-700 block">利润 (美元):</span>
-                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitUsd">$7.88</span>
+                <span class="text-xl font-extrabold text-ochre-700 font-mono" id="displayProfitUsd">$8.97</span>
               </div>
             </div>
           </div>
@@ -376,7 +376,7 @@
                 <span class="text-xs font-bold text-purple-900">单品毛利率 (被动显示·不可更改)</span>
               </div>
               <span class="text-xs font-black text-purple-700 font-mono text-base" id="displayGrossMargin">
-                56.44%
+                88.35%
               </span>
             </div>
             <!-- 公式表达式完整显示 -->
@@ -385,7 +385,7 @@
               毛利率 = (单件售价 − 采购成本) ÷ 单件售价
             </div>
             <div class="text-[10px] text-purple-500 mt-1 pl-0.5" id="grossMarginDetail">
-              代入值：(¥264.00 − ¥115.00) ÷ ¥264.00 = 56.44%
+              代入值：(¥171.67 − ¥20.00) ÷ ¥171.67 = 88.35%
             </div>
           </div>
 
@@ -486,7 +486,7 @@
               <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
                 <span class="text-slate-400 font-sans shrink-0 text-[11px]">① 填入数值：</span>
                 <span class="text-slate-200 break-all" id="step1Formula">
-                  单品售价 = 115 + 6 + 67 + 单品售价×0.05 + 0 + 10 + 单品售价×0.20
+                  单品售价 = 20 + 6 + 67 + 单品售价×0.05 + 0 + 10 + 单品售价×0.35
                 </span>
               </div>
 
@@ -494,15 +494,15 @@
               <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
                 <span class="text-slate-400 font-sans shrink-0 text-[11px]">② 合并固定成本：</span>
                 <span class="text-slate-200 break-all" id="step2Formula">
-                  单品售价 = 198 + 单品售价×0.05 + 单品售价×0.20
+                  单品售价 = 103 + 单品售价×0.05 + 单品售价×0.35
                 </span>
               </div>
 
-              <!-- 移项提取公因式 (特别纠正：利润率如15%代入0.15，绝不能代入15) -->
+              <!-- 移项提取公因式 (特别纠正：利润率如35%代入0.35，绝不能代入35) -->
               <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
                 <span class="text-slate-400 font-sans shrink-0 text-[11px]">③ 移项合并同类项：</span>
                 <span class="text-amber-300 font-medium break-all" id="step3Formula">
-                  单品售价 × (1 − 0.05 − 0.20) = 198
+                  单品售价 × (1 − 0.05 − 0.35) = 103
                 </span>
               </div>
 
@@ -510,7 +510,7 @@
               <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 text-slate-300">
                 <span class="text-slate-400 font-sans shrink-0 text-[11px]">④ 计算分母与除法：</span>
                 <span class="text-sky-300 font-medium break-all" id="step4Formula">
-                  单品售价 = 198 ÷ (1 − 0.05 − 0.20) = 198 ÷ 0.75
+                  单品售价 = 103 ÷ (1 − 0.05 − 0.35) = 103 ÷ 0.60
                 </span>
               </div>
 
@@ -518,11 +518,11 @@
               <div class="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span class="text-slate-400 font-sans text-[11px]">⑤ 最终核算结果：</span>
                 <div class="text-right font-bold" id="step5Formula">
-                  <span class="text-blue-400 text-sm">单品售价 = 264.00元</span>
+                  <span class="text-blue-400 text-sm">单品售价 = 171.67元</span>
                   <span class="text-slate-400 mx-1">=</span>
-                  <span class="text-emerald-400 text-sm">39.40美元</span>
+                  <span class="text-emerald-400 text-sm">25.62美元</span>
                   <span class="text-slate-400 mx-1.5">；</span>
-                  <span class="text-ochre-400 text-sm">利润 = 52.80元 = 7.88美元</span>
+                  <span class="text-ochre-400 text-sm">利润 = 60.08元 = 8.97美元</span>
                 </div>
               </div>
 
@@ -547,7 +547,7 @@
 
   <!-- 底部微版权/提示 -->
   <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-400 border-t border-slate-200 mt-8">
-    <p>跨境电商商品预估与定价公式面板 · 专为跨境卖家精准测算定制</p>
+    <p>跨境单品售价计算器 · 专为跨境卖家精准测算定制</p>
   </footer>
 
   <!-- 业务逻辑脚本 -->
@@ -708,7 +708,7 @@
         grossMarginDetail.textContent = `代入值：(¥${formatCurrency(currentResult.priceCny, 2)} − ¥${formatCurrency(s.purchaseCost, 2)}) ÷ ¥${formatCurrency(currentResult.priceCny, 2)} = ${formatCurrency(currentResult.grossMargin, 2)}%`;
       }
 
-      // 渲染推导过程 (严谨代入小数如 0.15，绝对不显示 15)
+      // 渲染推导过程 (严谨代入小数如 0.35，绝对不显示 35)
       renderDeductionSteps(s, currentResult);
 
       // 渲染利润档位速查表
